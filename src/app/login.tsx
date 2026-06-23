@@ -1,48 +1,97 @@
 import { useCustomFonts } from '@/hooks/useFonts';
-import { useAuthLoading, useAuthStore, useEmailError, useIsLoggedIn, usePasswordError, useUser } from '@/stores/auth.store';
-import { useCallback, useState } from 'react';
+import { useAuthActions, useAuthFormState, useAuthUser } from '@/stores/auth.store';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function LoginScreen() {
   const { fontsLoaded } = useCustomFonts();
-
+  const router = useRouter();
+  const { isLoggedIn, user } = useAuthUser();
+  const { isLoading } = useAuthFormState();
+  const { login, logout } = useAuthActions();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const submitLockRef = useRef(false);
+  const isMountedRef = useRef(true);
 
-  const isLoggedIn = useIsLoggedIn();
-  const user = useUser();
-  const isLoading = useAuthLoading();
-  const emailError = useEmailError();
-  const passwordError = usePasswordError();
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      submitLockRef.current = false;
+    };
+  }, []);
 
-  const login = useAuthStore((state) => state.login);
-  const logout = useAuthStore((state) => state.logout);
+  useFocusEffect(
+    useCallback(() => {
+      if (isLoggedIn && user && isMountedRef.current) {
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          router.replace('/articles');
+        }
+      }
+    }, [isLoggedIn, user, router])
+  );
 
   const handleLogin = useCallback(async () => {
+    if (submitLockRef.current || !isMountedRef.current) {
+      return;
+    }
+
     if (!email || !password) {
       Alert.alert('Error', 'Please enter email and password');
       return;
     }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+    submitLockRef.current = true;
+
     try {
       await login({ email, password });
-      Alert.alert('Success', 'Login successful!');
-      setEmail('');
-      setPassword('');
+      if (isMountedRef.current) {
+        Alert.alert('Success', 'Login successful!');
+        setEmail('');
+        setPassword('');
+      }
     } catch (err) {
       // 
+    } finally {
+      setTimeout(() => {
+        if (isMountedRef.current) {
+          submitLockRef.current = false;
+        }
+      }, 500);
     }
   }, [email, password, login]);
 
   const handleLogout = useCallback(async () => {
+    if (submitLockRef.current || !isMountedRef.current) {
+      return;
+    }
+    submitLockRef.current = true;
     try {
       await logout();
-      Alert.alert('Success', 'Logout successful!');
+      if (isMountedRef.current) {
+        Alert.alert('Success', 'Logout successful!');
+      }
     } catch (err) {
-      Alert.alert('Logout Failed', 'Failed to logout');
+      if (isMountedRef.current) {
+        Alert.alert('Logout Failed', 'Failed to logout');
+      }
+    } finally {
+      setTimeout(() => {
+        if (isMountedRef.current) {
+          submitLockRef.current = false;
+        }
+      }, 500);
     }
   }, [logout]);
 
-  // Show loading screen while fonts are loading
   if (!fontsLoaded) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF' }}>
@@ -63,51 +112,32 @@ export default function LoginScreen() {
           <Text style={styles.subtitle}>Selamat datang kembali!</Text>
 
           <TextInput
-            style={[styles.input, emailError && styles.inputError]}
+            style={styles.input}
             placeholder="E-mail"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
             keyboardType="email-address"
             testID="email-input"
+            editable={!isLoading}
           />
-          {emailError && (
-            <View style={styles.wrapError}>
-              <Image
-                source={require('@/assets/images/ic-warning.svg')}
-              />
-              <Text style={styles.error} testID="email-error">
-                {emailError}
-              </Text>
-            </View>
-          )}
 
           <TextInput
-            style={[styles.input, passwordError && styles.inputError]}
+            style={styles.input}
             placeholder="Kata Sandi"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
             testID="password-input"
+            editable={!isLoading}
           />
-
-          {passwordError && (
-            <View style={styles.wrapError}>
-              <Image
-                source={require('@/assets/images/ic-warning.svg')}
-              />
-              <Text style={styles.error} testID="password-error">
-                {passwordError}
-              </Text>
-            </View>
-          )}
 
           <Text style={styles.forgotPassword}>Lupa Kata Sandi?</Text>
 
           <TouchableOpacity
-            style={styles.btnLogin}
+            style={[styles.btnLogin, isLoading && styles.btnLoginDisabled]}
             onPress={handleLogin}
-            disabled={isLoading}
+            disabled={isLoading || submitLockRef.current}
             testID="login-button"
             activeOpacity={0.7}
           >
@@ -130,7 +160,7 @@ export default function LoginScreen() {
           <TouchableOpacity
             style={styles.btnLoginGoogle}
             onPress={handleLogout}
-            disabled={isLoading}
+            disabled={isLoading || submitLockRef.current}
             testID="logout-button"
             activeOpacity={0.7}
           >
@@ -163,9 +193,9 @@ export default function LoginScreen() {
       )}
 
       <TouchableOpacity
-        style={styles.btnLogout}
+        style={[styles.btnLogout, isLoading && styles.btnLogoutDisabled]}
         onPress={handleLogout}
-        disabled={isLoading}
+        disabled={isLoading || submitLockRef.current}
         testID="logout-button"
         activeOpacity={0.7}
       >
@@ -175,7 +205,7 @@ export default function LoginScreen() {
       </TouchableOpacity>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -203,7 +233,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 8,
     color: '#020202',
-    fontFamily: 'ComicBook', // Uncomment after adding ComicBook.ttf file
+    lineHeight: 26,
+    fontFamily: 'ComicBook',
   },
   subtitle: {
     fontSize: 16,
@@ -239,6 +270,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
+  },
+  btnLoginDisabled: {
+    opacity: 0.6,
   },
   btnLoginGoogle: {
     borderColor: '#EAE9E9',
@@ -301,6 +335,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
+  },
+  btnLogoutDisabled: {
+    opacity: 0.6,
   },
   btnLogoutText: {
     color: '#FFFFFF',
