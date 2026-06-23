@@ -1,6 +1,7 @@
 import { getStorage, removeStorage, setStorage } from '@/services/storage';
 import { AuthSession, AuthState, AuthStore, LoginCredentials, User } from '@/types/user.types';
 import { create } from 'zustand';
+import { resetQueryClient } from '@/providers/query-provider';
 
 // Storage keys
 const STORAGE_KEY = 'auth_session';
@@ -44,7 +45,8 @@ const clearSession = async (): Promise<void> => {
   await removeStorage(STORAGE_KEY);
 };
 
-export const useAuthStore = create<AuthStore>((set, get) => ({
+// Create the auth store
+export const useAuthStore = create<AuthStore>((set) => ({
   // Initial state
   ...createInitialState(),
 
@@ -110,6 +112,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   /**
    * Logout action
+   * Clears auth state, storage, and query cache
    */
   logout: async (): Promise<void> => {
     set({ isLoading: true, error: null });
@@ -123,6 +126,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       // Clear session from storage
       await clearSession();
+
+      // Clear TanStack Query cache to prevent data leaks
+      try {
+        resetQueryClient();
+      } catch (queryError) {
+        console.warn('Failed to reset query cache:', queryError);
+        // Don't throw - logout should succeed even if cache reset fails
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Logout failed';
       set({
@@ -189,25 +200,69 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 }));
 
 /**
- * Selector hooks for better performance
+ * Combined selector hooks for better performance
+ *
+ * ✅ FIXED: Using individual selectors combined to prevent infinite loops
+ * The key insight: Don't return objects from selectors - combine hooks instead
  */
-export const useIsLoggedIn = () => useAuthStore(state => state.isLoggedIn);
-export const useUser = () => useAuthStore(state => state.user);
-export const useAuthLoading = () => useAuthStore(state => state.isLoading);
-export const useAuthError = () => useAuthStore(state => state.error);
-export const useEmailError = () => useAuthStore(state => state.emailError);
-export const usePasswordError = () => useAuthStore(state => state.passwordError);
+
+/**
+ * Complete auth state - combines multiple individual selectors
+ * This prevents infinite loops by using separate subscriptions
+ */
+export const useAuthState = () => {
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const user = useAuthStore((state) => state.user);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const error = useAuthStore((state) => state.error);
+
+  return { isLoggedIn, user, isLoading, error };
+};
+
+/**
+ * Auth state with validation errors - for login form
+ * Combines individual selectors to prevent infinite loops
+ */
+export const useAuthFormState = () => {
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const emailError = useAuthStore((state) => state.emailError);
+  const passwordError = useAuthStore((state) => state.passwordError);
+
+  return { isLoading, emailError, passwordError };
+};
+
+/**
+ * User info for UI display
+ * Combines individual selectors to prevent infinite loops
+ */
+export const useAuthUser = () => {
+  const user = useAuthStore((state) => state.user);
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+
+  return { user, isLoggedIn };
+};
+
+/**
+ * Individual selector hooks
+ * Use these when you only need a single value
+ * These are safe and won't cause infinite loops
+ */
+export const useIsLoggedIn = () => useAuthStore((state) => state.isLoggedIn);
+export const useUser = () => useAuthStore((state) => state.user);
+export const useAuthLoading = () => useAuthStore((state) => state.isLoading);
+export const useAuthError = () => useAuthStore((state) => state.error);
+export const useEmailError = () => useAuthStore((state) => state.emailError);
+export const usePasswordError = () => useAuthStore((state) => state.passwordError);
 
 /**
  * Auth actions hook
- * Memoized with shallow comparison to prevent infinite loops
+ * Actions are stable references in Zustand, so this is safe
+ * Returns an object of action functions
  */
-export const useAuthActions = () => useAuthStore(
-  state => ({
-    login: state.login,
-    logout: state.logout,
-    restoreSession: state.restoreSession,
-    setError: state.setError,
-    clearError: state.clearError,
-  }),
-);
+export const useAuthActions = () => ({
+  login: useAuthStore((state) => state.login),
+  logout: useAuthStore((state) => state.logout),
+  restoreSession: useAuthStore((state) => state.restoreSession),
+  setError: useAuthStore((state) => state.setError),
+  clearError: useAuthStore((state) => state.clearError),
+});
