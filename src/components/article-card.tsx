@@ -76,14 +76,8 @@ export const ArticleCard = memo<ArticleCardProps>(
 
 const styles = StyleSheet.create({
   container: {
-    // backgroundColor: '#FFFFFF',
     overflow: 'hidden',
     marginBottom: 20,
-    // elevation: 2,
-    // shadowColor: '#000',
-    // shadowOffset: { width: 0, height: 2 },
-    // shadowOpacity: 0.1,
-    // shadowRadius: 4,
   },
 
   pressed: {
