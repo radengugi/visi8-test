@@ -40,15 +40,12 @@ export const useCustomFonts = () => {
   const [fontsLoaded, fontError] = useFonts(FONTS);
 
   useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync();
-    } else if (fontError) {
-      console.error('❌ Font loading error:', fontError);
+    if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
 
-  return { fontsLoaded, fontError };
+  return { fontsLoaded: fontsLoaded || false, fontError };
 };
 
 /**

@@ -1,5 +1,6 @@
 import { QueryProvider } from '@/providers/query-provider';
 import { useAuthActions, useAuthState } from '@/stores/auth.store';
+import { useCustomFonts } from '@/hooks/useFonts';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, useColorScheme, View } from 'react-native';
@@ -16,6 +17,7 @@ const LoadingScreen: React.FC = () => (
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const { fontsLoaded } = useCustomFonts();
   const { isLoading } = useAuthState();
   const { restoreSession } = useAuthActions();
   const [isSessionRestored, setIsSessionRestored] = useState(false);
@@ -29,7 +31,7 @@ export default function RootLayout() {
       });
   }, [restoreSession]);
 
-  if (!isSessionRestored || isLoading) {
+  if (!fontsLoaded || !isSessionRestored || isLoading) {
     return (
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <LoadingScreen />

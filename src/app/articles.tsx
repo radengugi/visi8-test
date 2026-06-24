@@ -33,7 +33,7 @@ export default function ArticlesScreen() {
 
   const handleArticlePress = useCallback(
     (articleId: string) => {
-      // router.push(`/article/${articleId}`);
+      router.push(`/article/${articleId}`);
     },
     [router]
   );

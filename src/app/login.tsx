@@ -1,11 +1,9 @@
-import { useCustomFonts } from '@/hooks/useFonts';
 import { useAuthActions, useAuthFormState, useAuthUser } from '@/stores/auth.store';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function LoginScreen() {
-  const { fontsLoaded } = useCustomFonts();
   const router = useRouter();
   const { isLoggedIn, user } = useAuthUser();
   const { isLoading } = useAuthFormState();
@@ -59,7 +57,7 @@ export default function LoginScreen() {
         setPassword('');
       }
     } catch (err) {
-      // 
+      //
     } finally {
       setTimeout(() => {
         if (isMountedRef.current) {
@@ -91,14 +89,6 @@ export default function LoginScreen() {
       }, 500);
     }
   }, [logout]);
-
-  if (!fontsLoaded) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF' }}>
-        <Text>Loading fonts...</Text>
-      </View>
-    );
-  }
 
   if (!isLoggedIn) {
     return (
