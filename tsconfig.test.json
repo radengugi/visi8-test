@@ -1,0 +1,46 @@
+/**
+ * TypeScript Configuration untuk Test Files
+ *
+ * Penjelasan untuk interview:
+ * - Ini tsconfig khusus untuk test files
+ * - Extends base tsconfig
+ * - Menambahkan Jest types agar globals (describe, it, expect) ter-recognize
+ *
+ * Kenapa perlu file terpisah:
+ * - Production code tidak butuh Jest types
+ * - Test code butuh Jest globals
+ * - Clean separation antara production dan test config
+ */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    /**
+     * Tambahkan Jest types ke compiler
+     *
+     * Penjelasan untuk interview:
+     * - Ini enable TypeScript mengenali Jest globals:
+     *   - describe, it, test, expect, jest, beforeEach, afterEach, dll
+     * - Tanpa ini, TypeScript akan complain "Cannot find name 'describe'"
+     * - @types/jest package harus di-install
+     */
+    "types": ["jest"]
+  },
+  /**
+   * Include hanya test files
+   *
+   * Penjelasan untuk interview:
+   * - Pattern ini match semua test files
+   * - __tests__ folder dan *.test.ts, *.spec.ts files
+   */
+  "include": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx",
+    "src/__tests__/**/*.ts",
+    "src/__tests__/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

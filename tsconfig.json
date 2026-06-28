@@ -9,6 +9,16 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    /**
+     * Types untuk Jest
+     *
+     * Penjelasan untuk interview:
+     * - "jest" type enable TypeScript mengenali Jest globals:
+     *   - describe, it, test, expect, jest, beforeEach, afterEach, dll
+     * - Fix error: "Cannot find name 'describe'"
+     * - Perlu install @types/jest package
+     */
+    "types": ["jest"],
     "paths": {
       "@/*": [
         "./src/*"
