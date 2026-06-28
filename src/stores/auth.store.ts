@@ -3,14 +3,9 @@ import { AuthSession, AuthState, AuthStore, LoginCredentials, User } from '@/typ
 import { create } from 'zustand';
 import { resetQueryClient } from '@/providers/query-provider';
 
-// Storage keys
 const STORAGE_KEY = 'auth_session';
-
-// Hardcoded valid credentials
 const VALID_EMAIL = 'test@example.com';
 const VALID_PASSWORD = '123456';
-
-// Mock user data for successful login
 const MOCK_USER: User = {
   id: '1',
   email: VALID_EMAIL,
@@ -20,9 +15,6 @@ const MOCK_USER: User = {
   updatedAt: new Date().toISOString(),
 };
 
-/**
- * Create initial auth state
- */
 const createInitialState = (): AuthState => ({
   isLoggedIn: false,
   user: null,
@@ -31,19 +23,6 @@ const createInitialState = (): AuthState => ({
   emailError: null,
   passwordError: null,
 });
-
-const saveSession = async (isLoggedIn: boolean, user: User | null): Promise<void> => {
-  const session: AuthSession = {
-    isLoggedIn,
-    user,
-    timestamp: Date.now(),
-  };
-  await setStorage(STORAGE_KEY, session);
-};
-
-const clearSession = async (): Promise<void> => {
-  await removeStorage(STORAGE_KEY);
-};
 
 // Create the auth store
 export const useAuthStore = create<AuthStore>((set) => ({
@@ -62,7 +41,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
     try {
       // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise<void>(resolve => setTimeout(resolve, 500));
 
       // Validate both credentials and collect individual errors
       let emailError: string | null = null;
@@ -99,7 +78,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
       });
 
       // Save session to storage
-      await saveSession(true, MOCK_USER);
+      await setStorage(STORAGE_KEY, {
+        isLoggedIn: true,
+        user: MOCK_USER,
+        timestamp: Date.now(),
+      } as AuthSession);
     } catch (error) {
       set({
         isLoading: false,
@@ -119,13 +102,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
     try {
       // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise<void>(resolve => setTimeout(resolve, 300));
 
-      // Clear state
+      // Clear state and storage
       set(createInitialState());
-
-      // Clear session from storage
-      await clearSession();
+      await removeStorage(STORAGE_KEY);
 
       // Clear TanStack Query cache to prevent data leaks
       try {
@@ -166,7 +147,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
           return;
         } else {
           // Session expired, clear it
-          await clearSession();
+          await removeStorage(STORAGE_KEY);
         }
       }
 
@@ -199,54 +180,19 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 }));
 
-/**
- * Combined selector hooks for better performance
- *
- * ✅ FIXED: Using individual selectors combined to prevent infinite loops
- * The key insight: Don't return objects from selectors - combine hooks instead
- */
+// ========== Selector Hooks ==========
+// Using individual selectors combined to prevent infinite loops
 
-/**
- * Complete auth state - combines multiple individual selectors
- * This prevents infinite loops by using separate subscriptions
- */
+// Combined selectors
 export const useAuthState = () => {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const user = useAuthStore((state) => state.user);
   const isLoading = useAuthStore((state) => state.isLoading);
   const error = useAuthStore((state) => state.error);
-
   return { isLoggedIn, user, isLoading, error };
 };
 
-/**
- * Auth state with validation errors - for login form
- * Combines individual selectors to prevent infinite loops
- */
-export const useAuthFormState = () => {
-  const isLoading = useAuthStore((state) => state.isLoading);
-  const emailError = useAuthStore((state) => state.emailError);
-  const passwordError = useAuthStore((state) => state.passwordError);
-
-  return { isLoading, emailError, passwordError };
-};
-
-/**
- * User info for UI display
- * Combines individual selectors to prevent infinite loops
- */
-export const useAuthUser = () => {
-  const user = useAuthStore((state) => state.user);
-  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
-
-  return { user, isLoggedIn };
-};
-
-/**
- * Individual selector hooks
- * Use these when you only need a single value
- * These are safe and won't cause infinite loops
- */
+// Individual selectors
 export const useIsLoggedIn = () => useAuthStore((state) => state.isLoggedIn);
 export const useUser = () => useAuthStore((state) => state.user);
 export const useAuthLoading = () => useAuthStore((state) => state.isLoading);
@@ -254,11 +200,7 @@ export const useAuthError = () => useAuthStore((state) => state.error);
 export const useEmailError = () => useAuthStore((state) => state.emailError);
 export const usePasswordError = () => useAuthStore((state) => state.passwordError);
 
-/**
- * Auth actions hook
- * Actions are stable references in Zustand, so this is safe
- * Returns an object of action functions
- */
+// Actions
 export const useAuthActions = () => ({
   login: useAuthStore((state) => state.login),
   logout: useAuthStore((state) => state.logout),

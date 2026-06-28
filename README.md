@@ -1,332 +1,254 @@
 # Visi8 Technical Test
 
-A React Native mobile application with article reading features, authentication, and reading progress persistence.
+A React Native application built with Expo that demonstrates authentication, article browsing, markdown rendering, reading progress persistence, and unit testing.
 
-## Features
+---
 
-- Authentication with session persistence
-- Article list with infinite scroll
-- Article detail with markdown rendering
-- Reading progress persistence and restoration
-- Unit testing with race condition validation
+# Features
 
-## Tech Stack
+- Authentication with persistent session
+- Article list with infinite scrolling
+- Article detail page
+- Markdown rendering
+- Reading progress persistence
+- Automatic scroll position restoration
+- Error, loading, and empty states
+- Jest unit testing
+
+---
+
+# Tech Stack
 
 | Technology | Purpose |
 |------------|---------|
 | React Native | Mobile Framework |
-| Expo SDK 56 | Development Platform |
-| Expo Router | Navigation |
+| Expo SDK 53 | Development Platform |
+| Expo Router | File-based Navigation |
 | TypeScript | Type Safety |
-| Zustand | State Management |
-| TanStack Query | Server State |
+| Zustand | Global State Management |
+| TanStack Query | Server State & Cache |
 | Axios | HTTP Client |
 | AsyncStorage | Local Persistence |
 | react-native-markdown-display | Markdown Rendering |
 | Jest | Unit Testing |
 
-## Environment
+---
 
-- Node.js >= 20
-- Yarn 1.x
-- Expo SDK 56
-- Android Studio (for Android development)
-- Xcode (for iOS development, macOS only)
-
-## Features
-
-- Authentication
-- Session Persistence
-- Article List
-- Infinite Scroll
-- Pagination
-- Loading State
-- Empty State
-- Error State
-- Retry Mechanism
-- Markdown Rendering
-- Reading Progress
-- Persist Reading Progress
-- Restore Reading Progress
-
-## Application Flow
-
-```
-Login
-  ↓
-Article List
-  ↓
-Tap Article
-  ↓
-Article Detail
-  ↓
-Reading Progress Saved
-  ↓
-Back to List
-  ↓
-Open Article Again
-  ↓
-Reading Position Restored
-```
-
-## Folder Structure
+# Project Structure
 
 ```
 src
-├── app              # Expo Router screens and navigation
-├── components       # Reusable UI components
-├── hooks           # Custom React hooks
-├── providers       # React context providers
-├── services        # API services and data fetching
-├── stores         # Zustand global state
-├── types          # TypeScript type definitions
-└── __tests__      # Unit tests
+├── app
+├── components
+├── hooks
+├── providers
+├── services
+├── stores
+├── types
+└── __tests__
 ```
 
-## Architecture
+---
 
-### Data Flow
-
-```
-UI
-  ↓
-Hooks
-  ↓
-Services
-  ↓
-API
-```
-
-### Global State
+# Application Flow
 
 ```
-Zustand Stores
-  ↓
-AsyncStorage (Persist Middleware)
+Login
+   │
+   ▼
+Article List
+   │
+   ▼
+Article Detail
+   │
+   ▼
+Save Reading Progress
+   │
+   ▼
+Back to List
+   │
+   ▼
+Open Article Again
+   │
+   ▼
+Restore Previous Position
 ```
 
-Global state uses Zustand with persist middleware to automatically sync state changes to AsyncStorage, providing offline persistence and state restoration on app restart.
+---
 
-## API Source
+# Installation
 
-This project uses a mock backend hosted on GitHub:
+Install dependencies
+
+```bash
+yarn
+```
+
+Run Expo
+
+```bash
+yarn start
+```
+
+Run Android
+
+```bash
+yarn android
+```
+
+Run iOS
+
+```bash
+yarn ios
+```
+
+Run Unit Test
+
+```bash
+yarn test
+```
+
+Generate Coverage
+
+```bash
+yarn test --coverage
+```
+
+---
+
+# Technical Decisions
+
+## Expo Router
+
+Chosen because it provides simple file-based routing, built-in deep linking support, and integrates naturally with the Expo ecosystem.
+
+## Zustand
+
+Used for lightweight global state management. Combined with Persist middleware to automatically synchronize state into AsyncStorage.
+
+## TanStack Query
+
+Used to manage server state, caching, loading state, retry mechanism, and automatic refetching.
+
+## AsyncStorage
+
+Used for persistent local storage to save authentication session and article reading progress.
+
+---
+
+# Reading Progress
+
+Reading progress is implemented using Zustand with Persist middleware.
+
+Flow:
 
 ```
-https://github.com/visi8-ppramesi/visi8-interview-mock-backend
+Scroll
+    │
+    ▼
+Debounce
+    │
+    ▼
+Zustand Store
+    │
+    ▼
+AsyncStorage
 ```
 
-Data sources:
-- `articles.json` - Article list metadata
-- Individual article JSON files - Article details and content
-- Image assets hosted in the repository
+When the user opens the same article again, the stored scroll position is restored automatically.
 
-## Technical Decisions
+---
 
-### Expo Router
+# Testing
 
-Chosen for file-based routing system that simplifies navigation configuration. Deep linking support is built-in, and it integrates seamlessly with Expo ecosystem.
+The project includes two Jest test suites.
 
-### Zustand
+## 1. Article Helper
 
-Lightweight state management solution with minimal boilerplate. The persist middleware provides automatic AsyncStorage synchronization without additional setup. Better performance compared to Context API due to selective re-renders.
+Tests the `buildArticleImageUrl()` helper.
 
-### TanStack Query
+Covered cases:
 
-Handles server state with automatic caching, refetching, and background updates. Reduces boilerplate for loading/error states and provides built-in retry mechanisms. Better user experience with stale data management.
+- empty path
+- relative path
+- absolute URL
+- path normalization
 
-### Axios
+---
 
-HTTP client with interceptors support and better error handling. Consistent API for request/response transformation and timeout configuration. Widely adopted in React Native ecosystem.
+## 2. Reading Progress Store
 
-### AsyncStorage
+Tests the reading progress implementation.
 
-Chosen for persistent storage solution with async operations. Reliable cross-platform storage with good performance for reading progress data. Native implementation provides better performance than alternatives.
+Covered cases:
 
-## Performance Optimizations
+- save progress
+- restore progress
+- clear progress
+- multiple articles
+- rapid updates (race condition)
+- persistence behavior
 
-- React Query cache with automatic refetching
-- FlatList virtualization for long lists
-- useCallback for event handlers
-- expo-image built-in cache
-- Debounced reading progress updates
-- Zustand selector optimization
-- Minimal re-render patterns
+The race condition test validates that multiple rapid updates preserve the latest scroll position correctly.
 
-## Reading Progress
+---
 
-Reading progress system tracks scroll position for each article:
-
-- Scroll position stored in AsyncStorage through Zustand persist middleware
-- Progress automatically restored when article is reopened
-- Debounced updates to reduce storage write operations
-- Multiple rapid updates handled correctly with final value preserved
-
-The store uses Zustand's atomic state updates, ensuring that rapid scroll events don't cause race conditions or data loss.
-
-## Error Handling
-
-- Loading state during data fetching
-- Empty state when no data available
-- Error state with user-friendly messages
-- Retry button for failed requests
-- API error handling with axios interceptors
-- Boundary error handling in components
-
-## Unit Testing
-
-Project uses Jest for unit testing with two test suites:
-
-### Test 1: Article Helper
-
-Tests `buildArticleImageUrl()` function that constructs complete URLs from relative paths.
-
-**Coverage:**
-- Empty string handling
-- Absolute URL passthrough
-- Relative path normalization with `../`
-- Relative path normalization with `./`
-- Path concatenation
-
-### Test 2: Reading Progress Store
-
-Tests race condition handling in reading progress persistence.
-
-**Coverage:**
-- Single update baseline
-- Multiple rapid updates (requirement validation)
-- Multiple articles simultaneous updates
-- Stress test with 100 updates
-- AsyncStorage persistence integration
-- State consistency across API surface
-
-### Test Results
+# Test Result
 
 ```
 PASS src/__tests__/reading-progress.store.test.ts
-  ✓ 8 tests passed
 
 PASS src/__tests__/article-detail-helper.test.ts
-  ✓ 6 tests passed
 
-Test Suites: 2 passed, 2 total
-Tests:       14 passed, 14 total
-Time:        0.3s
+Test Suites: 2 passed
+Tests: 14 passed
 ```
 
-### Run Tests
+---
 
-```bash
-# Run all tests
-yarn test
-
-# Run specific test file
-yarn test article-detail-helper
-
-# Generate coverage report
-yarn test --coverage
-
-# Watch mode for development
-yarn test --watch
-```
-
-## Coverage
-
-Coverage report generated using:
-
-```bash
-yarn test --coverage
-```
-
-Coverage report focuses on test presence and requirement fulfillment rather than percentage metrics.
-
-## Requirement Checklist
+# Requirement Checklist
 
 | Requirement | Status |
-|-------------|--------|
+|------------|--------|
 | Authentication | ✅ |
-| Session Persistence | ✅ |
 | Article List | ✅ |
 | Infinite Scroll | ✅ |
-| Pagination | ✅ |
 | Article Detail | ✅ |
 | Markdown Rendering | ✅ |
 | Reading Progress | ✅ |
 | Restore Reading Progress | ✅ |
-| Unit Test | ✅ |
+| Jest Unit Test | ✅ |
 | Race Condition Test | ✅ |
 
-## Assumptions
+---
 
-- Backend API is read-only for this implementation
-- Authentication uses mock API endpoints
-- Reading progress stores only scroll position
-- Bookmark feature is out of scope
-- Article editing is not supported
-- Network connectivity is required for initial load
+# API Source
 
-## Challenges & Solutions
+Mock backend:
 
-| Challenge | Solution |
-|-----------|----------|
-| Relative image paths in markdown | `buildArticleImageUrl()` helper function |
-| Reading progress persistence | Zustand with persist middleware |
-| Multiple rapid scroll updates | Atomic state updates with race condition tests |
-| Markdown rendering with images | react-native-markdown-display with custom image URL builder |
-| Infinite scroll state management | TanStack Query with pagination |
-| Session persistence | AsyncStorage with Zustand persist |
+https://github.com/visi8-ppramesi/visi8-interview-mock-backend
 
-## Installation
+---
 
-```bash
-# Install dependencies
-yarn
+# Assumptions
 
-# Start development server
-yarn start
+- Backend is read-only.
+- Authentication uses provided mock API.
+- Reading progress stores only scroll position.
+- Bookmark functionality is outside the current scope.
 
-# Run on Android
-yarn android
+---
 
-# Run on iOS
-yarn ios
+# AI Usage
 
-# Run tests
-yarn test
+AI assistance used during development is documented in:
+
+```
+AI_NOTES.md
 ```
 
-**Command explanations:**
-- `yarn` - Installs all project dependencies
-- `yarn start` - Starts Expo development server
-- `yarn android` - Builds and runs on Android emulator/device
-- `yarn ios` - Builds and runs on iOS simulator/device
-- `yarn test` - Runs all unit tests
+---
 
-## Project Structure Details
+# License
 
-### `src/app/`
-Expo Router file-based navigation system. Each file represents a route in the application.
-
-### `src/components/`
-Reusable React components that can be used across different screens.
-
-### `src/hooks/`
-Custom React hooks for reusable stateful logic and side effects.
-
-### `src/providers/`
-React context providers that wrap the application root.
-
-### `src/services/`
-API communication layer and data fetching logic.
-
-### `src/stores/`
-Zustand stores for global state management with persistence.
-
-### `src/types/`
-TypeScript type definitions and interfaces.
-
-### `src/__tests__/`
-Unit test files organized by feature.
-
-## License
-
-This project is submitted as a technical test and is intended for evaluation purposes only.
+This repository was created solely for the Visi8 Technical Test.
