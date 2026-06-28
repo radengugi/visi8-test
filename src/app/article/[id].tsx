@@ -1,4 +1,6 @@
 import { useArticleDetail } from '@/hooks/useArticleDetail';
+import { useReadingProgress } from '@/hooks/useReadingProgress';
+import { useReadingProgressWithScroll } from '@/hooks/useReadingProgressWithScroll';
 import { buildArticleImageUrl } from '@/services/article-detail.service';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -37,6 +39,14 @@ export default function ArticleDetailScreen() {
   }>();
 
   const scrollViewRef = useRef<ScrollView>(null);
+
+  const { progress } = useReadingProgress(id ?? '');
+
+  const { handleScroll } = useReadingProgressWithScroll({
+    articleId: id,
+    scrollViewRef,
+    initialScrollY: progress,
+  });
 
   const {
     data: article,
@@ -126,6 +136,7 @@ export default function ArticleDetailScreen() {
           styles.scrollContent
         }
         scrollEventThrottle={16}
+        onScroll={handleScroll}
       >
         <Image
           source={{
